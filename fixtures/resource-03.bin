@@ -1,0 +1,1 @@
+{"root":"/graph","fields":[{"name":"deviceId","kind":"uint64","dataWord":0},{"name":"shared","kind":"struct","pointerIndex":0}],"maxWords":128,"maxRequests":12}

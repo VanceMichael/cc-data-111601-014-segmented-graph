@@ -1,0 +1,28 @@
+{
+  "catalog": {
+    "entry": "/projection",
+    "objects": [
+      "/primary",
+      "/graph",
+      "/cycle"
+    ]
+  },
+  "resources": {
+    "/primary": {
+      "file": "primary.bin",
+      "type": "application/octet-stream"
+    },
+    "/graph": {
+      "file": "resource-01.bin",
+      "type": "application/octet-stream"
+    },
+    "/cycle": {
+      "file": "resource-02.bin",
+      "type": "application/octet-stream"
+    },
+    "/projection": {
+      "file": "resource-03.bin",
+      "type": "application/json"
+    }
+  }
+}
