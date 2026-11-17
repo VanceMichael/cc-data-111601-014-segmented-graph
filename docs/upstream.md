@@ -7,7 +7,7 @@
 ## 当前来源路由
 
 - `/primary`：application/octet-stream
-- `/graph`：application/octet-stream
+- `/graph`：application/octet-stream（phase 1 切换为 resource-00.bin：同一设备数据的单段布局变体）
 - `/cycle`：application/octet-stream
 - `/projection`：application/json
 
