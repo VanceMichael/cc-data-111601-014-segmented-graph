@@ -4,9 +4,9 @@
 
 ## 当前能力
 
-已有单段直接结构查看和范围 HTTP 原件领取，缺少分段图的选择性采集。
+支持单段直接结构查看、范围 HTTP 原件领取，以及分段 Cap’n Proto 图的定向字段领取（selection）。分段读取解析 single-far/double-far 落点、跨段引用、struct/list 与 inline composite 元素，只按需发 Range 请求而不整包下载；每个解析结果都带 `{version, segment, word}` 身份，不同段的同号 word 不会被当成同一位置。
 
-`src/reader.mjs` 提供现有单件读取契约；`src/transport.mjs` 只访问配置来源的同源地址，拒绝隐式跳转；`src/store.mjs` 保存原件摘要和解释结果。`src/service.mjs` 是产品入口，`src/provider.mjs` 是独立 HTTP 联调来源，内容为无个人信息的本地样例。
+`src/reader.mjs` 在保留单件 `inspect` 契约的同时提供惰性分段解释器；`src/inventory.mjs` 是按 root 路径 + ETag 登记的已核实字节清单（区间合并、预算计量、版本失效）；`src/selection.mjs` 编排描述符校验、字段解释与溯源；`src/transport.mjs` 只访问配置来源的同源地址，拒绝隐式跳转，支持 Range 与条件请求；`src/store.mjs` 保存原件摘要、解释结果与投影记录。`src/service.mjs` 是产品入口，`src/provider.mjs` 是独立 HTTP 联调来源，内容为无个人信息的本地样例。
 
 ## 环境与运行
 
@@ -29,8 +29,11 @@ npm run demo
 - POST /intakes，JSON 为 {"path":"/primary"}：按现有 reader 接收单件原件；内容解释失败不登记资料。
 - GET /records：持久接收目录；同 source URL、同摘要重领返回原 id。
 - GET /objects/{digest}：读取已保存的原始字节。
+- POST /selections：分段图定向领取。JSON 为 {"path":"/projection","fields":["deviceId"]}（fields 可省略表示描述符全部字段），或同源内联 {"descriptor":{...},"fields":[...]}。按 maxWords/maxRequests 计量，只发 Range 请求；同版本投影复用已核实字节。
+- GET /projections/{id}：读取一次选择的持久化投影（含 root、version、rootLocation、各字段 status 与位置）。
+- GET /projections/{id}/fields/{name}：读取单字段溯源；字段尚未领取时返回 404 field_not_selected，不冒充空值。
 
-这四项是兼容接口，后续扩展可以新增业务入口，但不能把 GET 请求变为写操作。收件记录当前只包含单件 raw 对象，不代表关联资料已完整。
+前四项是兼容接口，后续扩展可以新增业务入口，但不能把 GET 请求变为写操作。收件记录当前只包含单件 raw 对象，不代表关联资料已完整。选择接口在来源版本变化（If-Match 失配）时返回 409 source_version_changed，旧字节清单作废；畸形回指、越界指针和预算越界返回 422 并带明确错误码。
 
 ## 来源与资料
 
@@ -38,4 +41,4 @@ npm run demo
 
 ## 测试与构建
 
-`npm test` 覆盖现有读取器、畸形输入、真实 HTTP 领取、原件一致性、持久重开、同源边界和范围响应；领域读取行为在 test/domain.test.mjs。`npm run build` 对运行模块逐个执行语法校验并复制到 dist。`docker build -t segmented-graph:local .` 可创建产品运行镜像；镜像默认运行实际演示，不含远程业务凭据。
+`npm test` 覆盖现有读取器、畸形输入、真实 HTTP 领取、原件一致性、持久重开、同源边界和范围响应；分段 far/double-far、列表元素、环与深度保护、DAG 别名在 test/segmented.test.mjs，区间合并与预算在 test/inventory.test.mjs，定向领取、版本失效、未领取字段语义和持久投影在 test/selection.test.mjs。`npm run build` 对运行模块逐个执行语法校验并复制到 dist。`docker build -t segmented-graph:local .` 可创建产品运行镜像；镜像默认运行实际演示，不含远程业务凭据。

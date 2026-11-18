@@ -14,7 +14,10 @@
     },
     "/graph": {
       "file": "resource-01.bin",
-      "type": "application/octet-stream"
+      "type": "application/octet-stream",
+      "phases": {
+        "1": { "file": "resource-04.bin" }
+      }
     },
     "/cycle": {
       "file": "resource-02.bin",

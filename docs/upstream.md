@@ -13,6 +13,26 @@
 
 `/catalog` 提供入口及业务选择。资源字节支持 GET/HEAD、单一 bytes 范围、ETag 和 If-Match，响应不会跨来源重定向。`/_phase` 为联调控制路径，不是产品数据来源，不应由产品自行切换阶段。
 
+### far 指针字段约定（以实际资源为准）
+
+本子集的 far 指针按来源资源的实际编码解释，位排布与标准文档略有差异：
+
+- bit 0–1：far 标记（资源中读到 2 或 3 都按 far 处理）。
+- bit 2–31：landing pad 的 word 偏移（30 位）。
+- bit 32–62：landing pad 所在 segment 编号。
+- bit 63：double-far 标记；为 1 时 landing pad 占两个 word，第二个 word 为 single-far（B=0）或 null（B=1，内容紧随其后）。
+
+不同 segment 中的同号 word 是不同位置；任何解析结果的身份都带 `{version, segment, word}`，version 来自该资源当前 ETag。
+
+## 定向领取（selection）
+
+`POST /selections` 接受 `{"path":"/projection","fields":[...]}` 拉取来源描述符，或同源内联 `{"descriptor":{...},"fields":[...]}`（descriptor.root 必须与配置来源同源，否则 `outside_source`）。产品只按需发 Range 请求，不整包下载：先以 `bytes=0-0` 确认版本与资源长度，再按 framing、far 落点和字段位置逐段领取，相邻缺口合并、已核实区间在同版本投影间复用。每个 selection 独立计量 `maxRequests` 与 `maxWords`，越界返回 `selection_request_budget` / `selection_word_budget`。
+
+- 同一 root 路径确认过版本后，后续请求带 `If-Match`；来源换文件使 ETag 变化时返回 409 `source_version_changed`，旧清单作废，不沿用旧指针解释。
+- 字段结果区分 `present` 与显式 `null`（读到零指针才算空）；尚未领取的字段不在投影中，读取返回 404 `field_not_selected`，绝不冒充空值。
+- 畸形回指命中 `capnp_pointer_cycle`，超长 far 链命中 `capnp_pointer_depth`，越界命中 `capnp_bounds` / `capnp_bad_segment`，均拒绝为 422，不降级为空对象。
+- `GET /projections/{id}` 读取持久化投影，`GET /projections/{id}/fields/{name}` 读取单字段（含 version、segment、word 溯源）。
+
 ## 依据和范围说明
 
 - https://capnproto.org/encoding.html
